@@ -1,0 +1,21 @@
+# /etc/systemd/system/arakawa-kakeibo.service
+# User= と WorkingDirectory= は環境に合わせて書き換える
+[Unit]
+Description=Arakawa Kakeibo (SvelteKit)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/arakawa-kakeibo
+EnvironmentFile=/home/pi/arakawa-kakeibo/.env
+Environment=NODE_ENV=production
+Environment=HOST=127.0.0.1
+Environment=PORT=3100
+ExecStart=/usr/bin/node build/index.js
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
