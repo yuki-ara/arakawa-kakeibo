@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import { yen } from '#lib/format.js';
 	import { ACCOUNT_KIND_LABEL } from '#lib/types.js';
 	let { data } = $props();
@@ -87,3 +88,37 @@
 		</ul>
 	</section>
 {/each}
+
+<section class="mt-8">
+	<div class="flex items-baseline justify-between border-b border-slate-200 pb-1">
+		<h2 class="text-sm font-bold text-slate-600">想定評価額</h2>
+		<a href={resolve('/assets/plan')} class="text-xs text-slate-500 underline"
+			>積立・リターンを設定</a
+		>
+	</div>
+	<p class="mt-1 text-xs text-slate-400">
+		現在の評価額に毎月の積立と想定リターンを反映した試算です。現金・預金は現状維持の前提です。
+	</p>
+	<div class="mt-3 overflow-x-auto">
+		<table class="w-full text-right text-sm">
+			<thead class="text-xs text-slate-500">
+				<tr>
+					<th class="py-1 text-left font-normal"></th>
+					{#each data.horizons as y (y)}<th class="py-1 font-normal">{y}年後</th>{/each}
+				</tr>
+			</thead>
+			<tbody class="divide-y divide-slate-100">
+				{#each data.fundRows as f (f.id)}
+					<tr>
+						<td class="max-w-32 truncate py-2 text-left text-xs">{f.name}</td>
+						{#each f.projected as v, i (i)}<td class="py-2">{yen(v)}</td>{/each}
+					</tr>
+				{/each}
+				<tr class="font-bold">
+					<td class="py-2 text-left text-xs">純資産</td>
+					{#each data.projectedNetWorth as v, i (i)}<td class="py-2">{yen(v)}</td>{/each}
+				</tr>
+			</tbody>
+		</table>
+	</div>
+</section>
