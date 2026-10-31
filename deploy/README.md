@@ -93,3 +93,18 @@ sudo systemctl enable --now arakawa-kakeibo-deploy.timer
 - 手動実行: `./deploy/auto-deploy.sh`
 - 止める: `sudo systemctl disable --now arakawa-kakeibo-deploy.timer`
 - ビルドに失敗した場合は再起動されず、動いているアプリはそのまま。次の確認時に再試行される。
+
+## 自動デプロイ（GitHub Actions のセルフホストランナー方式）
+
+`.github/workflows/deploy.yml`: main への push で、GitHub 上で型チェック・lint・テスト・ビルドを実行し、
+すべて通ったときだけラズパイのランナーが `deploy/deploy.sh` を実行する。PR ではテストのみ。
+
+1. GitHub のリポジトリ → Settings → Actions → Runners → New self-hosted runner → Linux / ARM64 を選び、
+   表示される手順（ダウンロード → `./config.sh --url ... --token ...`）をラズパイで実行する。
+2. サービスとして常駐させる: `sudo ./svc.sh install yuki && sudo ./svc.sh start`
+3. 上の「自動デプロイ（定期確認）」のタイマーを止める（二重デプロイ防止）:
+   `sudo systemctl disable --now arakawa-kakeibo-deploy.timer`
+4. 稼働用ディレクトリが `/home/yuki/Documents/yuki-dir/arakawa-kakeibo` と違う場合は、
+   リポジトリの Settings → Secrets and variables → Actions → Variables に `DEPLOY_DIR` を登録する。
+
+`deploy.sh` 内の `sudo systemctl restart` をパスワードなしで実行できるよう、sudoers の設定（上記）は引き続き必要。

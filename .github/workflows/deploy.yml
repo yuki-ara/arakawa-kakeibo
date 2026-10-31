@@ -1,19 +1,21 @@
-name: CI / Deploy
+name: CI and deploy
 
 on:
   push:
     branches: [main]
+  pull_request:
+  workflow_dispatch:
 
-# 同時に複数のデプロイが走らないようにする
+# 同じブランチの実行を直列化する（デプロイの重複を防ぐ）
 concurrency:
-  group: deploy
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
   test:
     runs-on: ubuntu-latest
     env:
-      # テスト・型チェック用のダミー値（本番の値は不要）
+      # ビルド・型チェック用のダミー値（実際の値は不要）
       PUBLIC_SUPABASE_URL: https://example.supabase.co
       PUBLIC_SUPABASE_KEY: dummy
     steps:
@@ -21,17 +23,20 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
+      # 同梱の npm 10 は依存解決でエラーになることがあるため最新版を使う
+      - run: npm install -g npm@latest
       - run: npm ci
       - run: npm run check
       - run: npm run lint
       - run: npm test
+      - run: npm run build
 
   deploy:
     needs: test
-    # ラズパイ上のセルフホストランナーで実行
-    runs-on: [self-hosted, raspi-kakeibo]
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: [self-hosted, linux, ARM64]
     steps:
-      # ランナーの作業ディレクトリではなく、稼働中のアプリのディレクトリで更新する
+      # ラズパイ上の稼働用ディレクトリを更新して再起動する
       - name: Deploy
-        run: ${{ vars.DEPLOY_DIR }}/deploy/deploy.sh
+        working-directory: ${{ vars.DEPLOY_DIR || '/home/yuki/Documents/yuki-dir/arakawa-kakeibo' }}
+        run: ./deploy/deploy.sh
