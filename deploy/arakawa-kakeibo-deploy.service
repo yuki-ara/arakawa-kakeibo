@@ -1,0 +1,13 @@
+# /etc/systemd/system/arakawa-kakeibo-deploy.service
+# User= と WorkingDirectory= は環境に合わせて書き換える
+[Unit]
+Description=Arakawa Kakeibo auto deploy (check GitHub main)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=yuki
+WorkingDirectory=/home/yuki/Documents/yuki-dir/arakawa-kakeibo
+ExecStart=/home/yuki/Documents/yuki-dir/arakawa-kakeibo/deploy/auto-deploy.sh
+TimeoutStartSec=900

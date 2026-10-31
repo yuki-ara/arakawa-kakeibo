@@ -71,3 +71,25 @@ GitHub 上で型チェック・lint・テストを実行し、通ったらラズ
 
 - ランナーは private リポジトリでのみ使うこと（public だと外部の PR からコードを実行される危険がある）。
 - ワークフローは `main` への push のみで動く。PR では動かない。
+
+## 自動デプロイ（GitHub の main が更新されたら反映）
+
+ラズパイは tailnet 内にあり GitHub から直接は届かないため、ラズパイ側から 2 分おきに GitHub を確認する方式にしている。
+`origin/main` に新しいコミットがあれば `deploy/deploy.sh`（pull → npm ci → build → 再起動）を実行する。
+
+```sh
+# 1. restart だけ、パスワードなしで実行できるようにする
+echo 'yuki ALL=(root) NOPASSWD: /usr/bin/systemctl restart arakawa-kakeibo' | sudo tee /etc/sudoers.d/arakawa-kakeibo-deploy
+sudo chmod 440 /etc/sudoers.d/arakawa-kakeibo-deploy
+sudo visudo -c   # parsed OK と出ること
+
+# 2. ユニットを登録（User / パスを環境に合わせて編集）
+sudo cp deploy/arakawa-kakeibo-deploy.service deploy/arakawa-kakeibo-deploy.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now arakawa-kakeibo-deploy.timer
+```
+
+- 動作確認: `systemctl list-timers arakawa-kakeibo-deploy.timer` / `journalctl -u arakawa-kakeibo-deploy -f`
+- 手動実行: `./deploy/auto-deploy.sh`
+- 止める: `sudo systemctl disable --now arakawa-kakeibo-deploy.timer`
+- ビルドに失敗した場合は再起動されず、動いているアプリはそのまま。次の確認時に再試行される。
