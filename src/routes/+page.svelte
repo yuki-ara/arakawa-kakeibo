@@ -5,13 +5,21 @@
 	let { data } = $props();
 </script>
 
-<section class="rounded-lg bg-emerald-600 p-5 text-white">
-	<div class="text-sm opacity-80">純資産</div>
-	<div class="text-3xl font-bold">{yen(data.netWorth)}</div>
+<section class="grid grid-cols-2 gap-3">
+	<div class="rounded-lg bg-emerald-600 p-4 text-white">
+		<div class="text-sm opacity-80">個人の資産</div>
+		<div class="text-2xl font-bold">{yen(data.worth.personal)}</div>
+	</div>
+	<div class="rounded-lg bg-sky-600 p-4 text-white">
+		<div class="text-sm opacity-80">共同口座</div>
+		<div class="text-2xl font-bold">{yen(data.worth.joint)}</div>
+	</div>
+</section>
+<p class="mt-2 text-right">
 	<a href={resolve('/assets')} class="mt-2 inline-block text-xs underline opacity-80"
 		>口座別の内訳</a
 	>
-</section>
+</p>
 
 <section class="mt-4">
 	<h2 class="mb-2 text-sm font-bold text-slate-600">{data.month.replace('-', '年')}月</h2>

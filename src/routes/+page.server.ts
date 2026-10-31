@@ -1,5 +1,5 @@
 import { monthRange, todayJst } from '#lib/format.js';
-import { monthlyTotals, netWorth } from '#lib/balance.js';
+import { monthlyTotals, netWorthByScope } from '#lib/balance.js';
 import { loadBalances } from '#lib/server/balances.js';
 import { loadReference } from '#lib/server/reference.js';
 import type { PageServerLoad } from './$types';
@@ -24,7 +24,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 	return {
 		month,
-		netWorth: netWorth(balances),
+		worth: netWorthByScope(balances),
 		totals: monthlyTotals(monthTx.data),
 		recent: recent.data,
 		accounts: ref.accounts,

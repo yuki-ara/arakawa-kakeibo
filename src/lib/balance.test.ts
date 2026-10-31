@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { computeBalances, monthlyTotals, netWorth } from './balance.js';
+import { computeBalances, monthlyTotals, netWorth, netWorthByScope } from './balance.js';
 import type { Account, Snapshot, Transaction } from './types.js';
 
 const acc = (id: number, kind: string, extra: Partial<Account> = {}): Account => ({
@@ -94,5 +94,26 @@ describe('netWorth / monthlyTotals', () => {
 			tx({ type: 'transfer', amount: 5000, to_account_id: 2 })
 		]);
 		expect(t).toEqual({ income: 1000, expense: 300 });
+	});
+});
+
+describe('netWorthByScope', () => {
+	it('共同と個人を合算せず別々に集計する', () => {
+		const balances = computeBalances(
+			[
+				acc(1, 'bank'),
+				acc(2, 'bank', { owner_id: 1 }),
+				acc(3, 'nisa', { owner_id: 1 }),
+				acc(4, 'bank', { owner_id: 1, include_in_net_worth: false })
+			],
+			[
+				snap(1, '2026-10-01', 100),
+				snap(2, '2026-10-01', 200),
+				snap(3, '2026-10-01', 300, 1),
+				snap(4, '2026-10-01', 999)
+			],
+			[]
+		);
+		expect(netWorthByScope(balances)).toEqual({ joint: 100, personal: 500 });
 	});
 });

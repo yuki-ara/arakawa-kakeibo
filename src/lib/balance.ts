@@ -53,6 +53,16 @@ export function computeBalances(
 	});
 }
 
+/** 共同口座（owner_id なし）と個人口座の純資産を別々に集計する（合算はしない）。 */
+export function netWorthByScope(balances: AccountBalance[]): { joint: number; personal: number } {
+	const counted = balances.filter((b) => b.account.include_in_net_worth);
+	const sum = (list: AccountBalance[]) => list.reduce((s, b) => s + b.balance, 0);
+	return {
+		joint: sum(counted.filter((b) => b.account.owner_id === null)),
+		personal: sum(counted.filter((b) => b.account.owner_id !== null))
+	};
+}
+
 /** 純資産（include_in_net_worth の口座のみ合計）。 */
 export function netWorth(balances: AccountBalance[]): number {
 	return balances
