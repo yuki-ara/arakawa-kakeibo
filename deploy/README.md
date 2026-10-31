@@ -35,3 +35,39 @@ tailscale serve status    # 公開URLを確認 → .env の ORIGIN に設定
 ```
 
 ログ確認: `journalctl -u arakawa-kakeibo -f`
+
+## 自動デプロイ（GitHub Actions + セルフホストランナー）
+
+`main` への push で、`.github/workflows/deploy.yml` が動く。
+GitHub 上で型チェック・lint・テストを実行し、通ったらラズパイのランナーが `deploy/deploy.sh` を実行する。
+
+### 初回セットアップ（ラズパイ側）
+
+1. パスワードなしで再起動できるようにする（ユーザー名は環境に合わせる）
+
+   ```sh
+   sudo cp deploy/sudoers-arakawa-kakeibo /tmp/arakawa-kakeibo
+   sudo visudo -cf /tmp/arakawa-kakeibo && sudo install -m 440 -o root -g root /tmp/arakawa-kakeibo /etc/sudoers.d/arakawa-kakeibo
+   sudo -n systemctl restart arakawa-kakeibo && echo OK   # パスワードを聞かれず OK なら成功
+   ```
+
+2. ランナーを登録する
+   GitHub のリポジトリ → Settings → Actions → Runners → New self-hosted runner
+   （OS: Linux、Architecture: ARM64）に表示されるコマンドを、ラズパイで順に実行する。
+   `./config.sh` の途中でラベルを聞かれたら `raspi-kakeibo` を追加する。
+   その後、サービスとして常駐させる。
+
+   ```sh
+   sudo ./svc.sh install     # アプリを動かしているのと同じユーザーで
+   sudo ./svc.sh start
+   ```
+
+3. リポジトリ変数を設定する
+   Settings → Secrets and variables → Actions → Variables → New repository variable
+   - 名前: `DEPLOY_DIR`
+   - 値: アプリのフルパス（例: `/home/yuki/Documents/yuki-dir/arakawa-kakeibo`）
+
+### 注意
+
+- ランナーは private リポジトリでのみ使うこと（public だと外部の PR からコードを実行される危険がある）。
+- ワークフローは `main` への push のみで動く。PR では動かない。

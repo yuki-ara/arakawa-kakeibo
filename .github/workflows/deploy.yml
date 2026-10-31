@@ -1,0 +1,37 @@
+name: CI / Deploy
+
+on:
+  push:
+    branches: [main]
+
+# 同時に複数のデプロイが走らないようにする
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      # テスト・型チェック用のダミー値（本番の値は不要）
+      PUBLIC_SUPABASE_URL: https://example.supabase.co
+      PUBLIC_SUPABASE_KEY: dummy
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npm run lint
+      - run: npm test
+
+  deploy:
+    needs: test
+    # ラズパイ上のセルフホストランナーで実行
+    runs-on: [self-hosted, raspi-kakeibo]
+    steps:
+      # ランナーの作業ディレクトリではなく、稼働中のアプリのディレクトリで更新する
+      - name: Deploy
+        run: ${{ vars.DEPLOY_DIR }}/deploy/deploy.sh
