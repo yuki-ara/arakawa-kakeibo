@@ -39,7 +39,7 @@ tailscale serve status    # 公開URLを確認 → .env の ORIGIN に設定
 ## 自動デプロイ（GitHub Actions + セルフホストランナー）
 
 `main` への push で、`.github/workflows/deploy.yml` が動く。
-GitHub 上で型チェック・lint・テストを実行し、通ったらラズパイのランナーが `deploy/deploy.sh` を実行する。
+GitHub 上で型チェック・lint・テスト・ビルドを実行し、通ったらラズパイのランナーが `deploy/deploy.sh` を実行する。
 
 ### 初回セットアップ（ラズパイ側）
 
@@ -54,7 +54,7 @@ GitHub 上で型チェック・lint・テストを実行し、通ったらラズ
 2. ランナーを登録する
    GitHub のリポジトリ → Settings → Actions → Runners → New self-hosted runner
    （OS: Linux、Architecture: ARM64）に表示されるコマンドを、ラズパイで順に実行する。
-   `./config.sh` の途中でラベルを聞かれたら `raspi-kakeibo` を追加する。
+   ラベルは既定（`self-hosted, Linux, ARM64`）のままでよい。
    その後、サービスとして常駐させる。
 
    ```sh
@@ -70,41 +70,4 @@ GitHub 上で型チェック・lint・テストを実行し、通ったらラズ
 ### 注意
 
 - ランナーは private リポジトリでのみ使うこと（public だと外部の PR からコードを実行される危険がある）。
-- ワークフローは `main` への push のみで動く。PR では動かない。
-
-## 自動デプロイ（GitHub の main が更新されたら反映）
-
-ラズパイは tailnet 内にあり GitHub から直接は届かないため、ラズパイ側から 2 分おきに GitHub を確認する方式にしている。
-`origin/main` に新しいコミットがあれば `deploy/deploy.sh`（pull → npm ci → build → 再起動）を実行する。
-
-```sh
-# 1. restart だけ、パスワードなしで実行できるようにする
-echo 'yuki ALL=(root) NOPASSWD: /usr/bin/systemctl restart arakawa-kakeibo' | sudo tee /etc/sudoers.d/arakawa-kakeibo-deploy
-sudo chmod 440 /etc/sudoers.d/arakawa-kakeibo-deploy
-sudo visudo -c   # parsed OK と出ること
-
-# 2. ユニットを登録（User / パスを環境に合わせて編集）
-sudo cp deploy/arakawa-kakeibo-deploy.service deploy/arakawa-kakeibo-deploy.timer /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now arakawa-kakeibo-deploy.timer
-```
-
-- 動作確認: `systemctl list-timers arakawa-kakeibo-deploy.timer` / `journalctl -u arakawa-kakeibo-deploy -f`
-- 手動実行: `./deploy/auto-deploy.sh`
-- 止める: `sudo systemctl disable --now arakawa-kakeibo-deploy.timer`
-- ビルドに失敗した場合は再起動されず、動いているアプリはそのまま。次の確認時に再試行される。
-
-## 自動デプロイ（GitHub Actions のセルフホストランナー方式）
-
-`.github/workflows/deploy.yml`: main への push で、GitHub 上で型チェック・lint・テスト・ビルドを実行し、
-すべて通ったときだけラズパイのランナーが `deploy/deploy.sh` を実行する。PR ではテストのみ。
-
-1. GitHub のリポジトリ → Settings → Actions → Runners → New self-hosted runner → Linux / ARM64 を選び、
-   表示される手順（ダウンロード → `./config.sh --url ... --token ...`）をラズパイで実行する。
-2. サービスとして常駐させる: `sudo ./svc.sh install yuki && sudo ./svc.sh start`
-3. 上の「自動デプロイ（定期確認）」のタイマーを止める（二重デプロイ防止）:
-   `sudo systemctl disable --now arakawa-kakeibo-deploy.timer`
-4. 稼働用ディレクトリが `/home/yuki/Documents/yuki-dir/arakawa-kakeibo` と違う場合は、
-   リポジトリの Settings → Secrets and variables → Actions → Variables に `DEPLOY_DIR` を登録する。
-
-`deploy.sh` 内の `sudo systemctl restart` をパスワードなしで実行できるよう、sudoers の設定（上記）は引き続き必要。
+- main への push ではテスト後にデプロイまで行う。PR ではテストのみ実行し、デプロイはしない。
